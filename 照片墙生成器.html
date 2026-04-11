@@ -1,0 +1,898 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>照片墙生成器 Pro</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #e94560, #ff6b6b, #feca57);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #a0a0a0;
+            margin-bottom: 40px;
+            font-size: 1.1rem;
+        }
+
+        .upload-section {
+            background: rgba(255,255,255,0.05);
+            border: 2px dashed rgba(255,255,255,0.2);
+            border-radius: 20px;
+            padding: 60px 40px;
+            text-align: center;
+            margin-bottom: 40px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-section::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(233,69,96,0.1) 0%, transparent 70%);
+            animation: pulse 3s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(0.8); opacity: 0.5; }
+            50% { transform: scale(1.2); opacity: 0.8; }
+        }
+
+        .upload-section:hover {
+            border-color: #e94560;
+            background: rgba(233,69,96,0.05);
+            transform: translateY(-2px);
+        }
+
+        .upload-section.dragover {
+            border-color: #feca57;
+            background: rgba(254,202,87,0.1);
+        }
+
+        .upload-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            display: block;
+        }
+
+        .upload-text {
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+            color: #fff;
+        }
+
+        .upload-hint {
+            color: #888;
+            font-size: 0.95rem;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .control-group {
+            background: rgba(255,255,255,0.05);
+            padding: 20px;
+            border-radius: 15px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .control-label {
+            display: block;
+            margin-bottom: 12px;
+            font-weight: 600;
+            color: #feca57;
+            font-size: 0.95rem;
+        }
+
+        .control-group input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255,255,255,0.1);
+            outline: none;
+            -webkit-appearance: none;
+            margin-bottom: 8px;
+        }
+
+        .control-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #e94560;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .control-group input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        .control-group input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.2);
+            background: rgba(0,0,0,0.3);
+            color: #fff;
+            font-size: 1rem;
+            text-align: center;
+        }
+
+        .dimension-inputs {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .dimension-separator {
+            color: #888;
+            font-size: 1.2rem;
+        }
+
+        .preset-ratios {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .ratio-preset {
+            padding: 6px 12px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+            color: #ccc;
+        }
+
+        .ratio-preset:hover, .ratio-preset.active {
+            background: #e94560;
+            border-color: #e94560;
+            color: #fff;
+        }
+
+        .control-group select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.2);
+            background: rgba(0,0,0,0.3);
+            color: #fff;
+            font-size: 0.95rem;
+            cursor: pointer;
+        }
+
+        .value-display {
+            text-align: right;
+            color: #e94560;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #e94560 0%, #ff6b6b 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.1rem;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(233,69,96,0.4);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(233,69,96,0.6);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.1);
+            box-shadow: none;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .preview-section {
+            margin-top: 40px;
+            text-align: center;
+        }
+
+        .preview-container {
+            background: #0a0a0a;
+            border-radius: 20px;
+            padding: 30px;
+            margin-top: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            display: inline-block;
+            max-width: 100%;
+            overflow: auto;
+        }
+
+        #canvas {
+            max-width: 100%;
+            height: auto;
+            border-radius: 10px;
+        }
+
+        .image-counter {
+            background: rgba(233,69,96,0.2);
+            color: #e94560;
+            padding: 10px 20px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .action-buttons {
+            margin-top: 30px;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 10px;
+            margin-top: 30px;
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 20px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 15px;
+        }
+
+        .gallery-item {
+            position: relative;
+            aspect-ratio: 1;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .gallery-item:hover {
+            transform: scale(1.05);
+        }
+
+        .gallery-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .gallery-item .remove {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: rgba(233,69,96,0.9);
+            color: white;
+            border: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .gallery-item:hover .remove {
+            opacity: 1;
+        }
+
+        .loading {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.9);
+            padding: 40px;
+            border-radius: 20px;
+            z-index: 1000;
+            text-align: center;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(233,69,96,0.3);
+            border-top-color: #e94560;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .preset-colors {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .color-preset {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .color-preset:hover, .color-preset.active {
+            border-color: #fff;
+            transform: scale(1.1);
+        }
+
+        .custom-color-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        #customColor {
+            width: 50px;
+            height: 40px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .fill-mode-options {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .fill-mode {
+            flex: 1;
+            padding: 10px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+
+        .fill-mode:hover, .fill-mode.active {
+            background: #e94560;
+            border-color: #e94560;
+        }
+
+        .info-badge {
+            display: inline-block;
+            background: rgba(254,202,87,0.2);
+            color: #feca57;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            margin-left: 8px;
+        }
+
+        @media (max-width: 768px) {
+            h1 { font-size: 1.8rem; }
+            .upload-section { padding: 40px 20px; }
+            .controls { grid-template-columns: 1fr; }
+            .dimension-inputs { grid-template-columns: 1fr; }
+            .dimension-separator { text-align: center; }
+        }
+    </style>
+<base target="_blank">
+</head>
+<body>
+    <div class="container">
+        <h1>🖼️ 照片墙生成器 Pro</h1>
+        <p class="subtitle">自定义比例、自由布局，打造专属照片墙</p>
+
+        <div class="upload-section" id="dropZone">
+            <span class="upload-icon">📁</span>
+            <p class="upload-text">点击或拖拽上传图片</p>
+            <p class="upload-hint">支持 JPG、PNG、WebP 格式，可多选批量上传</p>
+            <input type="file" id="fileInput" multiple accept="image/*">
+        </div>
+
+        <div class="gallery" id="gallery" style="display: none;"></div>
+
+        <div class="controls">
+            <!-- 布局设置 -->
+            <div class="control-group">
+                <label class="control-label">📐 列数设置</label>
+                <input type="range" id="cols" min="1" max="15" value="8">
+                <div class="value-display" id="colsValue">8 列</div>
+            </div>
+
+            <!-- 自定义比例 - 核心功能 -->
+            <div class="control-group">
+                <label class="control-label">📏 图片尺寸比例 <span class="info-badge">宽:高</span></label>
+                <div class="dimension-inputs">
+                    <input type="number" id="ratioWidth" value="7" min="1" max="100" placeholder="宽">
+                    <span class="dimension-separator">:</span>
+                    <input type="number" id="ratioHeight" value="10" min="1" max="100" placeholder="高">
+                </div>
+                <div class="preset-ratios">
+                    <span class="ratio-preset active" data-w="7" data-h="10">护照 7:10</span>
+                    <span class="ratio-preset" data-w="1" data-h="1">方形 1:1</span>
+                    <span class="ratio-preset" data-w="3" data-h="4">标准 3:4</span>
+                    <span class="ratio-preset" data-w="4" data-h="3">横版 4:3</span>
+                    <span class="ratio-preset" data-w="16" data-h="9">宽屏 16:9</span>
+                    <span class="ratio-preset" data-w="9" data-h="16">竖屏 9:16</span>
+                    <span class="ratio-preset" data-w="2" data-h="3">照片 2:3</span>
+                    <span class="ratio-preset" data-w="5" data-h="7">明信片 5:7</span>
+                </div>
+            </div>
+
+            <!-- 单元格大小 -->
+            <div class="control-group">
+                <label class="control-label">📐 单元格宽度</label>
+                <input type="range" id="cellWidth" min="100" max="400" value="200">
+                <div class="value-display" id="cellWidthValue">200px</div>
+            </div>
+
+            <!-- 间距 -->
+            <div class="control-group">
+                <label class="control-label">↔️ 间距</label>
+                <input type="range" id="gap" min="0" max="50" value="4">
+                <div class="value-display" id="gapValue">4px</div>
+            </div>
+
+            <!-- 背景颜色 -->
+            <div class="control-group">
+                <label class="control-label">🎨 背景颜色</label>
+                <div class="preset-colors">
+                    <div class="color-preset active" style="background: #1a1a2e" data-color="#1a1a2e" title="深蓝"></div>
+                    <div class="color-preset" style="background: #0f0f0f" data-color="#0f0f0f" title="纯黑"></div>
+                    <div class="color-preset" style="background: #2c3e50" data-color="#2c3e50" title="灰蓝"></div>
+                    <div class="color-preset" style="background: #1e3a5f" data-color="#1e3a5f" title="海军蓝"></div>
+                    <div class="color-preset" style="background: #2d1b4e" data-color="#2d1b4e" title="深紫"></div>
+                    <div class="color-preset" style="background: #1b4332" data-color="#1b4332" title="深绿"></div>
+                    <div class="color-preset" style="background: #3d2817" data-color="#3d2817" title="棕色"></div>
+                    <div class="color-preset" style="background: #ffffff" data-color="#ffffff" title="白色"></div>
+                </div>
+                <div class="custom-color-wrapper">
+                    <input type="color" id="customColor" value="#1a1a2e">
+                    <span style="font-size: 0.9rem; color: #888;">自定义颜色</span>
+                </div>
+            </div>
+
+            <!-- 圆角 -->
+            <div class="control-group">
+                <label class="control-label">🔘 圆角</label>
+                <input type="range" id="borderRadius" min="0" max="50" value="4">
+                <div class="value-display" id="radiusValue">4px</div>
+            </div>
+
+            <!-- 填充模式 -->
+            <div class="control-group">
+                <label class="control-label">🖼️ 图片填充模式</label>
+                <div class="fill-mode-options">
+                    <div class="fill-mode active" data-mode="cover">填充裁切</div>
+                    <div class="fill-mode" data-mode="contain">完整显示</div>
+                    <div class="fill-mode" data-mode="stretch">拉伸填充</div>
+                </div>
+            </div>
+
+            <!-- 特效 -->
+            <div class="control-group">
+                <label class="control-label">✨ 光泽效果</label>
+                <input type="range" id="gloss" min="0" max="100" value="30">
+                <div class="value-display" id="glossValue">30%</div>
+            </div>
+
+            <!-- 边框 -->
+            <div class="control-group">
+                <label class="control-label">🖼️ 边框宽度</label>
+                <input type="range" id="borderWidth" min="0" max="10" value="0">
+                <div class="value-display" id="borderWidthValue">0px</div>
+            </div>
+        </div>
+
+        <div style="text-align: center;">
+            <button class="btn" onclick="generateWall()">
+                <span>🎨</span> 生成照片墙
+            </button>
+        </div>
+
+        <div class="preview-section" id="previewSection" style="display: none;">
+            <div class="image-counter">
+                共 <span id="imageCount">0</span> 张图片 · 
+                尺寸 <span id="canvasSize">0×0</span>px
+            </div>
+            <div class="preview-container">
+                <canvas id="canvas"></canvas>
+            </div>
+            <div class="action-buttons">
+                <button class="btn" onclick="downloadImage()">
+                    <span>💾</span> 下载高清图片
+                </button>
+                <button class="btn btn-secondary" onclick="clearAll()">
+                    <span>🗑️</span> 清空重置
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <p>正在生成照片墙...</p>
+    </div>
+
+    <script>
+        let images = [];
+        let backgroundColor = '#1a1a2e';
+        let fillMode = 'cover';
+
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const gallery = document.getElementById('gallery');
+
+        // 文件上传
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+
+        function handleFiles(files) {
+            Array.from(files).forEach(file => {
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        images.push(e.target.result);
+                        updateGallery();
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+
+        function updateGallery() {
+            gallery.style.display = images.length > 0 ? 'grid' : 'none';
+            gallery.innerHTML = images.map((img, idx) => `
+                <div class="gallery-item">
+                    <img src="${img}" alt="图片 ${idx + 1}">
+                    <button class="remove" onclick="removeImage(${idx})">×</button>
+                </div>
+            `).join('');
+        }
+
+        function removeImage(idx) {
+            images.splice(idx, 1);
+            updateGallery();
+        }
+
+        // 列数
+        document.getElementById('cols').addEventListener('input', (e) => {
+            document.getElementById('colsValue').textContent = e.target.value + ' 列';
+        });
+
+        // 单元格宽度
+        document.getElementById('cellWidth').addEventListener('input', (e) => {
+            document.getElementById('cellWidthValue').textContent = e.target.value + 'px';
+        });
+
+        // 间距
+        document.getElementById('gap').addEventListener('input', (e) => {
+            document.getElementById('gapValue').textContent = e.target.value + 'px';
+        });
+
+        // 圆角
+        document.getElementById('borderRadius').addEventListener('input', (e) => {
+            document.getElementById('radiusValue').textContent = e.target.value + 'px';
+        });
+
+        // 光泽
+        document.getElementById('gloss').addEventListener('input', (e) => {
+            document.getElementById('glossValue').textContent = e.target.value + '%';
+        });
+
+        // 边框
+        document.getElementById('borderWidth').addEventListener('input', (e) => {
+            document.getElementById('borderWidthValue').textContent = e.target.value + 'px';
+        });
+
+        // 比例预设
+        document.querySelectorAll('.ratio-preset').forEach(preset => {
+            preset.addEventListener('click', () => {
+                document.querySelectorAll('.ratio-preset').forEach(p => p.classList.remove('active'));
+                preset.classList.add('active');
+                document.getElementById('ratioWidth').value = preset.dataset.w;
+                document.getElementById('ratioHeight').value = preset.dataset.h;
+            });
+        });
+
+        // 自定义比例输入监听
+        function updateRatioPresets() {
+            const w = document.getElementById('ratioWidth').value;
+            const h = document.getElementById('ratioHeight').value;
+            document.querySelectorAll('.ratio-preset').forEach(p => {
+                p.classList.toggle('active', p.dataset.w === w && p.dataset.h === h);
+            });
+        }
+
+        document.getElementById('ratioWidth').addEventListener('input', updateRatioPresets);
+        document.getElementById('ratioHeight').addEventListener('input', updateRatioPresets);
+
+        // 颜色预设
+        document.querySelectorAll('.color-preset').forEach(preset => {
+            preset.addEventListener('click', () => {
+                document.querySelectorAll('.color-preset').forEach(p => p.classList.remove('active'));
+                preset.classList.add('active');
+                backgroundColor = preset.dataset.color;
+                document.getElementById('customColor').value = backgroundColor;
+            });
+        });
+
+        // 自定义颜色
+        document.getElementById('customColor').addEventListener('input', (e) => {
+            backgroundColor = e.target.value;
+            document.querySelectorAll('.color-preset').forEach(p => p.classList.remove('active'));
+        });
+
+        // 填充模式
+        document.querySelectorAll('.fill-mode').forEach(mode => {
+            mode.addEventListener('click', () => {
+                document.querySelectorAll('.fill-mode').forEach(m => m.classList.remove('active'));
+                mode.classList.add('active');
+                fillMode = mode.dataset.mode;
+            });
+        });
+
+        function generateWall() {
+            if (images.length === 0) {
+                alert('请先上传图片！');
+                return;
+            }
+
+            const loading = document.getElementById('loading');
+            loading.style.display = 'block';
+
+            setTimeout(() => {
+                createWall();
+                loading.style.display = 'none';
+                document.getElementById('previewSection').style.display = 'block';
+                document.getElementById('imageCount').textContent = images.length;
+                document.getElementById('previewSection').scrollIntoView({ behavior: 'smooth' });
+            }, 100);
+        }
+
+        function createWall() {
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+
+            const cols = parseInt(document.getElementById('cols').value);
+            const cellW = parseInt(document.getElementById('cellWidth').value);
+            const gap = parseInt(document.getElementById('gap').value);
+            const borderRadius = parseInt(document.getElementById('borderRadius').value);
+            const gloss = parseInt(document.getElementById('gloss').value) / 100;
+            const borderWidth = parseInt(document.getElementById('borderWidth').value);
+
+            // 获取自定义比例
+            const ratioW = parseFloat(document.getElementById('ratioWidth').value) || 1;
+            const ratioH = parseFloat(document.getElementById('ratioHeight').value) || 1;
+            const aspectRatio = ratioW / ratioH;
+
+            const cellH = cellW / aspectRatio;
+
+            const rows = Math.ceil(images.length / cols);
+            const canvasWidth = cols * cellW + (cols + 1) * gap;
+            const canvasHeight = rows * cellH + (rows + 1) * gap;
+
+            canvas.width = canvasWidth;
+            canvas.height = canvasHeight;
+
+            // 背景
+            ctx.fillStyle = backgroundColor;
+            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+            // 绘制网格（可选，用于对齐参考）
+            // drawGrid(ctx, canvasWidth, canvasHeight, cols, rows, cellW, cellH, gap);
+
+            let loadedCount = 0;
+
+            images.forEach((src, idx) => {
+                const row = Math.floor(idx / cols);
+                const col = idx % cols;
+                const x = gap + col * (cellW + gap);
+                const y = gap + row * (cellH + gap);
+
+                const img = new Image();
+                img.onload = () => {
+                    ctx.save();
+
+                    // 创建圆角路径
+                    ctx.beginPath();
+                    if (ctx.roundRect) {
+                        ctx.roundRect(x, y, cellW, cellH, borderRadius);
+                    } else {
+                        // 兼容旧浏览器
+                        roundedRect(ctx, x, y, cellW, cellH, borderRadius);
+                    }
+                    ctx.clip();
+
+                    // 根据填充模式绘制图片
+                    drawImageWithMode(ctx, img, x, y, cellW, cellH, fillMode);
+
+                    // 添加光泽效果
+                    if (gloss > 0) {
+                        const gradient = ctx.createLinearGradient(x, y, x + cellW, y + cellH);
+                        gradient.addColorStop(0, `rgba(255,255,255,${gloss * 0.3})`);
+                        gradient.addColorStop(0.5, `rgba(255,255,255,${gloss * 0.1})`);
+                        gradient.addColorStop(1, `rgba(0,0,0,${gloss * 0.2})`);
+                        ctx.fillStyle = gradient;
+                        ctx.fillRect(x, y, cellW, cellH);
+                    }
+
+                    // 添加边框
+                    if (borderWidth > 0) {
+                        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+                        ctx.lineWidth = borderWidth;
+                        ctx.stroke();
+                    }
+
+                    ctx.restore();
+
+                    loadedCount++;
+                    if (loadedCount === images.length) {
+                        document.getElementById('canvasSize').textContent = canvasWidth + '×' + canvasHeight;
+                    }
+                };
+                img.src = src;
+            });
+        }
+
+        function drawImageWithMode(ctx, img, x, y, w, h, mode) {
+            const imgAspect = img.width / img.height;
+            const cellAspect = w / h;
+
+            if (mode === 'stretch') {
+                ctx.drawImage(img, x, y, w, h);
+            } else if (mode === 'contain') {
+                let drawW, drawH, drawX, drawY;
+                if (imgAspect > cellAspect) {
+                    drawW = w;
+                    drawH = w / imgAspect;
+                    drawX = x;
+                    drawY = y + (h - drawH) / 2;
+                } else {
+                    drawH = h;
+                    drawW = h * imgAspect;
+                    drawX = x + (w - drawW) / 2;
+                    drawY = y;
+                }
+                ctx.drawImage(img, drawX, drawY, drawW, drawH);
+            } else { // cover
+                let drawW, drawH, drawX, drawY;
+                if (imgAspect > cellAspect) {
+                    drawH = h;
+                    drawW = h * imgAspect;
+                    drawX = x + (w - drawW) / 2;
+                    drawY = y;
+                } else {
+                    drawW = w;
+                    drawH = w / imgAspect;
+                    drawX = x;
+                    drawY = y + (h - drawH) / 2;
+                }
+                ctx.drawImage(img, drawX, drawY, drawW, drawH);
+            }
+        }
+
+        function roundedRect(ctx, x, y, w, h, r) {
+            const radius = Math.min(r, w/2, h/2);
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + w - radius, y);
+            ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+            ctx.lineTo(x + w, y + h - radius);
+            ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+            ctx.lineTo(x + radius, y + h);
+            ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+            ctx.lineTo(x, y + radius);
+            ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.closePath();
+        }
+
+        function downloadImage() {
+            const canvas = document.getElementById('canvas');
+            const link = document.createElement('a');
+            const timestamp = new Date().getTime();
+            link.download = '照片墙_' + timestamp + '.png';
+            link.href = canvas.toDataURL('image/png', 1.0);
+            link.click();
+        }
+
+        function clearAll() {
+            if (confirm('确定要清空所有图片吗？')) {
+                images = [];
+                updateGallery();
+                document.getElementById('previewSection').style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
